@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Compost Adjacent</title>
+<meta name="description" content="Compost Adjacent — cosmic compost transmissions" />
+<!-- Social / share image uses the pink worm favicon as a small preview -->
+<link rel="icon" href="data:image/svg+xml;utf8,
+%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3Cfilter id='g'%3E%3CfeGaussianBlur stdDeviation='2.8'/%3E%3C/filter%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='%23060606'/%3E%3Cpath d='M8 36c4-10 12-12 20-10s14 8 20 12 8 6 12 4' stroke='%23ff4fb3' stroke-width='4' stroke-linecap='round' fill='none' filter='url(%23g)'/%3E%3C/svg%3E">
+
+<style>
+  /* ===== variables & base ===== */
+  :root{
+    --worm1:#ff4fb3; --worm2:#80ffb0; --worm3:#ffd24a;
+    --worm4:#ff8a3d; --worm5:#50f1ff; --worm6:#ff5b5b;
+    --bg:#030303;
+    --ui-glow: 0 10px 30px rgba(0,0,0,0.6);
+  }
+  html,body{height:100%;margin:0;background:var(--bg);font-family:Verdana,Arial,sans-serif;color:#dfeee0;overflow:hidden;-webkit-font-smoothing:antialiased;}
+  /* subtle dither overlay tile (old-web texture) */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect width='100%25' height='100%25' fill='%23020202'/%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    background-repeat: repeat; mix-blend-mode: overlay; opacity:0.95;
+  }
+
+  /* ===== layout shells ===== */
+  .wrap{position:relative; z-index:4; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding-top:2vh;}
+  /* vertical title (organic stagger) */
+  .title-vertical { display:flex; flex-direction:column; align-items:center; gap:2px; z-index:6; user-select:none; }
+  .title-vertical .letter{
+    display:block; font-size: clamp(28px,6.5vw,64px); font-weight:800; line-height:0.9; text-transform:uppercase;
+    transform-origin:50% 50%; text-shadow: 0 10px 24px rgba(0,0,0,0.6);
+  }
+  @keyframes letterFloat {
+    0%{ transform: translateY(0); }
+    25%{ transform: translateY(-10%); }
+    50%{ transform: translateY(0); }
+    75%{ transform: translateY(6%); }
+    100%{ transform: translateY(0); }
+  }
+
+  /* canvas layers */
+  canvas#stars { position:fixed; inset:0; z-index:1; display:block; width:100%; height:100%; }
+  .worm-layer { position:fixed; inset:0; z-index:2; pointer-events:none; }
+
+  /* link buttons (bigger worms) */
+  .links-left, .links-right { position:fixed; bottom:22px; z-index:7; display:flex; gap:14px; align-items:center; }
+  .links-left { left:18px; }
+  .links-right { right:18px; }
+  .link-btn { width:72px; height:72px; display:grid; place-items:center; border-radius:12px; text-decoration:none; border:2px solid rgba(255,255,255,0.03); background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12)); box-shadow:var(--ui-glow); }
+  .link-btn svg { width:48px; height:28px; }
+
+  /* draggable player - default top-left */
+  .player-box { position:fixed; left:18px; top:18px; z-index:9; width:260px; height:84px; border-radius:10px; background:linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35)); border:2px solid rgba(255,255,255,0.04); box-shadow: 0 18px 44px rgba(0,0,0,0.6), 0 0 28px rgba(255,255,255,0.03); display:flex; align-items:center; gap:8px; padding:8px; cursor:grab; touch-action:none; }
+  .player-box:active { cursor:grabbing; }
+  .player-inner { flex:1; height:100%; border-radius:8px; overflow:hidden; }
+  .player-handle { width:34px; height:34px; border-radius:6px; display:flex; align-items:center; justify-content:center; margin-left:6px; margin-right:4px; background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.12)); border:1px solid rgba(255,255,255,0.03); color:#fff; font-size:12px; font-weight:700; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
+
+  /* unmute hint */
+  .unmute-hint { position:fixed; left:50%; transform:translateX(-50%); bottom:110px; z-index:9; font-family:monospace; font-size:12px; color:rgba(220,240,200,0.88); padding:6px 10px; border-radius:6px; background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.03); opacity:0; transition:opacity .3s; }
+
+  /* invert mode styling applied via .inverted on html element */
+  .inverted { filter: invert(1) hue-rotate(180deg); }
+  /* ensure player is visible if inverted */
+  .inverted .player-box { filter: none; }
+
+  @media (max-width:520px){
+    .link-btn{ width:56px; height:56px; }
+    .link-btn svg{ width:40px; height:22px; }
+    .player-box{ width:220px; height:72px; left:12px; top:12px; }
+    .title-vertical .letter{ font-size: clamp(20px,8vw,36px); }
+  }
+</style>
+</head>
+<body>
+  <!-- CRT stars canvas -->
+  <canvas id="stars" aria-hidden="true"></canvas>
+
+  <!-- tiny worm DOM layer -->
+  <div class="worm-layer" id="wormLayer" aria-hidden="true"></div>
+
+  <!-- main content wrapper -->
+  <div class="wrap" role="main" aria-labelledby="siteTitle">
+    <!-- vertical title inserted by JS -->
+    <div class="title-vertical" id="siteTitle" aria-label="COMPOST ADJACENT" role="heading" aria-level="1"></div>
+  </div>
+
+  <!-- link buttons (worm svgs as buttons) -->
+  <div class="links-left">
+    <a class="link-btn" id="spotify-link" href="https://open.spotify.com/artist/4JYHgAnjpihRXtvZ8Qssok" target="_blank" rel="noopener noreferrer" aria-label="Open Spotify">
+      <svg viewBox="0 0 200 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="worm-path" d="M5,20 Q25,10 45,20 T85,20 T125,20 T165,20 T195,20" fill="none" stroke="var(--worm2)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+
+  <div class="links-right">
+    <a class="link-btn" id="ig-link" href="https://www.instagram.com/compostadjacent/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+      <svg viewBox="0 0 200 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="worm-path" d="M5,20 Q25,10 45,20 T85,20 T125,20 T165,20 T195,20" fill="none" stroke="var(--worm4)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <a class="link-btn" id="contact-link" href="https://www.instagram.com/compostadjacent/" target="_blank" rel="noopener noreferrer" aria-label="Contact or About">
+      <svg viewBox="0 0 200 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="worm-path" d="M5,20 Q25,10 45,20 T85,20 T125,20 T165,20 T195,20" fill="none" stroke="var(--worm1)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+
+  <!-- draggable spotify player -->
+  <div class="player-box" id="playerBox" role="region" aria-label="Spotify player (draggable)">
+    <div class="player-handle" id="playerHandle">≡</div>
+    <div class="player-inner" id="playerInner">
+      <iframe id="spotifyFrame" src="https://open.spotify.com/embed/artist/4JYHgAnjpihRXtvZ8Qssok?utm_source=generator&theme=0" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Compost Adjacent Spotify player"></iframe>
+    </div>
+  </div>
+
+  <div class="unmute-hint" id="unmuteHint">Click the player to unmute / open in Spotify for full playback</div>
+
+<script>
+/* ----------------------------
+  Globals & utilities
+   - visibilityPause: animations run only when tab visible
+-----------------------------*/
+const palette = ['#ff4fb3','#80ffb0','#ffd24a','#ff8a3d','#50f1ff','#ff5b5b'];
+const starCanvas = document.getElementById('stars');
+const ctx = starCanvas.getContext('2d', { alpha: true });
+const wormLayer = document.getElementById('wormLayer');
+const titleEl = document.getElementById('siteTitle');
+const unmuteHint = document.getElementById('unmuteHint');
+
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function rand(min,max){ return Math.random()*(max-min)+min; }
+function hexToRgba(hex, a=1){
+  const c = hex.replace('#',''); const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/* ----------------------------
+  Visit counter for 100th-visit inversion
+-----------------------------*/
+(function handleVisitCount(){
+  try {
+    const key = 'comp_visit_count_v1';
+    let n = parseInt(localStorage.getItem(key) || '0',10) || 0;
+    n = n + 1;
+    localStorage.setItem(key, String(n));
+    if(n % 100 === 0){
+      // invert entire page visually for this visit
+      document.documentElement.classList.add('inverted');
+      // flash cue: small bloom in center
+      setTimeout(()=>{ document.documentElement.classList.add('invert-flash'); }, 80);
+      setTimeout(()=>{ document.documentElement.classList.remove('invert-flash'); }, 900);
+    } else {
+      document.documentElement.classList.remove('inverted');
+    }
+  } catch(e){ /* ignore localStorage errors */ }
+})();
+
+/* ----------------------------
+  Canvas & Stars (CRT pixel flicker)
+-----------------------------*/
+let stars = [], starCount = 0;
+function resizeCanvas(){
+  starCanvas.width = window.innerWidth;
+  starCanvas.height = window.innerHeight;
+  buildStars();
+}
+window.addEventListener('resize', debounce(()=>{
+  resizeCanvas();
+  createWorms();
+}, 220));
+
+function buildStars(){
+  stars = [];
+  const area = window.innerWidth * window.innerHeight;
+  starCount = Math.floor(Math.min(900, area / 3500)); // tuned for subtle→medium density
+  for(let i=0;i<starCount;i++){
+    stars.push({
+      x: Math.random()*starCanvas.width,
+      y: Math.random()*starCanvas.height,
+      color: palette[Math.floor(Math.random()*palette.length)],
+      baseR: Math.random()*1.2 + 0.6,
+      flickerSpeed: 0.6 + Math.random()*1.8,
+      phase: Math.random()*Math.PI*2,
+      scan: Math.random() < 0.06
+    });
+  }
+}
+
+/* draw stars */
+let lastTime = performance.now();
+function drawStars(now){
+  if(document.hidden){ lastTime = now; requestAnimationFrame(drawStars); return; }
+  const dt = now - lastTime; lastTime = now;
+  ctx.clearRect(0,0,starCanvas.width,starCanvas.height);
+  // faint dark wash to keep CRT feel
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.fillRect(0,0,starCanvas.width,starCanvas.height);
+
+  // draw stars as pixel rects for CRT vibe
+  for(const s of stars){
+    const t = now/1000 * s.flickerSpeed + s.phase;
+    const flick = 0.6 + 0.4*Math.abs(Math.sin(t*1.2));
+    const r = Math.max(0.5, s.baseR * (0.8 + 0.6*Math.sin(t)));
+    ctx.fillStyle = s.color;
+    // pixel rect
+    ctx.fillRect(Math.round(s.x), Math.round(s.y), Math.max(1, Math.round(r)), Math.max(1, Math.round(r)));
+    if(s.scan){
+      ctx.fillStyle = hexToRgba(s.color, 0.08 * flick);
+      ctx.fillRect(Math.round(s.x-1), Math.round(s.y-0.5), Math.round(2 + r), 1);
+    }
+  }
+
+  // draw active shooting stars & explosions (managed separately)
+  updateShooting(now);
+
+  requestAnimationFrame(drawStars);
+}
+
+/* ----------------------------
+  Tiny worms DOM layer (reduced count, non-colliding)
+  - uses WAAPI for smooth GPU-driven transforms
+-----------------------------*/
+function createWorms(){
+  wormLayer.innerHTML = '';
+  const cols = Math.max(8, Math.floor(window.innerWidth / 140));
+  const rows = Math.max(6, Math.floor(window.innerHeight / 120));
+  const cells = [];
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++) cells.push({x,y});
+  shuffleArray(cells);
+  const maxWorms = Math.min(90, Math.floor(cells.length * 0.55)); // fewer worms for perf
+  for(let i=0;i<maxWorms;i++){
+    const cell = cells[i];
+    const cellW = window.innerWidth / cols;
+    const cellH = window.innerHeight / rows;
+    const jitterX = (Math.random()*0.7-0.35)*cellW;
+    const jitterY = (Math.random()*0.7-0.35)*cellH;
+    const x = Math.round(cell.x*cellW + cellW/2 + jitterX);
+    const y = Math.round(cell.y*cellH + cellH/2 + jitterY);
+    const size = 6 + Math.random()*12;
+    const tpl = Math.floor(Math.random()*6);
+    const rot = Math.random()*360;
+    const el = document.createElement('div');
+    el.className = 'tiny-worm';
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.width = size + 'px';
+    el.style.height = (size*0.45) + 'px';
+    el.style.transform = `translate(-50%,-50%) rotate(${rot}deg)`;
+    const color = palette[tpl];
+    const strokeW = Math.max(1.2, (size/12) * 2.6);
+    el.innerHTML = `<svg viewBox="0 0 200 40" width="${size}" height="${Math.round(size*0.45)}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M5,20 Q25,12 45,20 T85,20 T125,20 T165,20 T195,20" stroke="${color}" stroke-width="${strokeW}" fill="none" stroke-linecap="round" stroke-linejoin="round" class="core"/>
+    </svg>`;
+    // glow via CSS filter
+    const core = el.querySelector('.core');
+    core.style.filter = `drop-shadow(0 0 ${2 + size*0.5}px ${color})`;
+    // WAAPI drift+wiggle
+    const driftX = (Math.random()*140 - 70);
+    const driftY = (Math.random()*80 - 40);
+    const dur = 22000 + Math.random()*38000;
+    const delay = Math.random()*6000;
+    el.animate([
+      { transform: `translate(-50%,-50%) rotate(${rot}deg) translate(0px,0px)` },
+      { transform: `translate(-50%,-50%) rotate(${rot+6}deg) translate(${driftX/2}px,${driftY/2}px)` },
+      { transform: `translate(-50%,-50%) rotate(${rot}deg) translate(${driftX}px,${driftY}px)` }
+    ], { duration: dur, iterations: Infinity, direction:'alternate', easing:'ease-in-out', delay });
+    // light opacity flicker
+    (function flickLoop(p){
+      if(document.hidden) { setTimeout(()=>flickLoop(p), 1000); return; }
+      p.style.opacity = (0.6 + Math.random()*0.45).toFixed(2);
+      setTimeout(()=>flickLoop(p), 1100 + Math.random()*1700);
+    })(core);
+    wormLayer.appendChild(el);
+  }
+}
+
+/* ----------------------------
+  Build vertical staggered title
+-----------------------------*/
+function buildTitle(){
+  titleEl.innerHTML = '';
+  const text = "COMPOST ADJACENT";
+  const letters = text.split('');
+  for(let i=0;i<letters.length;i++){
+    const ch = letters[i];
+    const span = document.createElement('span');
+    span.className = 'letter';
+    span.textContent = ch;
+    if(ch.trim()){
+      const idx = i % palette.length;
+      span.style.color = palette[idx];
+      span.style.textShadow = `0 0 12px ${palette[idx]}, 0 12px 24px rgba(0,0,0,0.6)`;
+      span.style.marginLeft = (Math.random()*18 - 9) + 'px'; // organic stagger
+      const delay = (i * 0.08) + (Math.random()*0.06);
+      span.style.animation = `letterFloat 1.15s cubic-bezier(.2,.8,.2,1) ${delay}s infinite`;
+    } else {
+      span.style.height = '8px';
+    }
+    titleEl.appendChild(span);
+  }
+}
+
+/* ----------------------------
+  Shooting stars + explosions (on canvas)
+  - runs only when document.visibilityState === 'visible'
+  - a shooting star every ~90s; random trajectory from an edge
+  - every 5th star triggers an explosion near center
+-----------------------------*/
+let shootingStars = []; // active
+let explosions = [];
+let starSpawnTimer = null;
+let starCounter = 0;
+function spawnShootingStar(){
+  // random edge spawn
+  const edge = Math.floor(Math.random()*4); // 0=left,1=top,2=right,3=bottom
+  let x, y, vx, vy;
+  const speed = rand(650,1200); // px per second
+  const angleJitter = rand(-0.6,0.6);
+  if(edge === 0){ // left
+    x = -20; y = rand(0, starCanvas.height); vx = rand(0.4,1.0)*speed; vy = rand(-0.6,0.6)*speed;
+  } else if(edge === 1){ // top
+    x = rand(0, starCanvas.width); y = -20; vx = rand(-0.6,0.6)*speed; vy = rand(0.4,1.0)*speed;
+  } else if(edge === 2){ // right
+    x = starCanvas.width + 20; y = rand(0, starCanvas.height); vx = -rand(0.4,1.0)*speed; vy = rand(-0.6,0.6)*speed;
+  } else { // bottom
+    x = rand(0, starCanvas.width); y = starCanvas.height + 20; vx = rand(-0.6,0.6)*speed; vy = -rand(0.4,1.0)*speed;
+  }
+  const color = palette[Math.floor(Math.random()*palette.length)];
+  const life = 1.2 + Math.random()*0.8; // seconds for trail fade
+  shootingStars.push({x,y,vx,vy, color, created: performance.now(), life});
+  starCounter++;
+  if(starCounter % 5 === 0){
+    // schedule a center explosion shortly after this star (random offset)
+    setTimeout(()=> spawnExplosionNearCenter(), rand(200,900));
+  }
+}
+
+function spawnExplosionNearCenter(){
+  const cx = starCanvas.width*0.5 + rand(-starCanvas.width*0.12, starCanvas.width*0.12);
+  const cy = starCanvas.height*0.5 + rand(-starCanvas.height*0.12, starCanvas.height*0.12);
+  const count = 18 + Math.floor(Math.random()*8);
+  const color = palette[Math.floor(Math.random()*palette.length)];
+  const t = performance.now();
+  explosions.push({cx,cy,count,color, created:t, life:1600 + Math.random()*900});
+}
+
+/* update & draw shooting effects */
+function updateShooting(now){
+  // update shooting stars
+  const toKeepStars = [];
+  const dt = 16/1000; // approx
+  // draw trails first
+  for(const s of shootingStars){
+    const t = (now - s.created)/1000;
+    const lifeRatio = t / s.life;
+    if(lifeRatio > 1){ continue; }
+    // position update
+    const nx = s.x + s.vx * ( (now - s.created)/1000 );
+    const ny = s.y + s.vy * ( (now - s.created)/1000 );
+    // draw trail as gradient line
+    drawShootingTrail(s.x, s.y, nx, ny, s.color, 1 - lifeRatio);
+    // small head
+    ctx.fillStyle = hexToRgba(s.color, 1 - lifeRatio*0.6);
+    ctx.beginPath();
+    ctx.arc(nx, ny, 2.2 + (1-lifeRatio)*3, 0, Math.PI*2);
+    ctx.fill();
+    toKeepStars.push(s);
+  }
+  shootingStars = toKeepStars; // keep only active (they auto expire by t>life when spawn is older because we didn't update positions per-frame stored; this is simplified)
+  // update & draw explosions
+  const aliveExplosions = [];
+  for(const e of explosions){
+    const age = now - e.created;
+    if(age > e.life) continue;
+    const progress = age / e.life;
+    // draw radial particles
+    for(let i=0;i<e.count;i++){
+      const ang = (i / e.count) * Math.PI*2 + (progress*2.5);
+      const speed = 20 + progress * 180;
+      const px = e.cx + Math.cos(ang) * speed * (0.6 + Math.random()*0.6);
+      const py = e.cy + Math.sin(ang) * speed * (0.6 + Math.random()*0.6);
+      ctx.fillStyle = hexToRgba(e.color, 1 - progress);
+      ctx.fillRect(px, py, 2 + (1-progress)*3, 2 + (1-progress)*3);
+    }
+    aliveExplosions.push(e);
+  }
+  explosions = aliveExplosions;
+}
+
+/* helper: draw trail between two points */
+function drawShootingTrail(x1,y1,x2,y2,color, opacity){
+  const grad = ctx.createLinearGradient(x1,y1,x2,y2);
+  grad.addColorStop(0, hexToRgba(color, 0.02 * opacity));
+  grad.addColorStop(0.6, hexToRgba(color, 0.28 * opacity));
+  grad.addColorStop(1, hexToRgba(color, 0.9 * opacity));
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2.2 + opacity*2.4;
+  ctx.beginPath();
+  ctx.moveTo(x1,y1);
+  ctx.lineTo(x2,y2);
+  ctx.stroke();
+}
+
+/* schedule shooting stars every ~90s (only while visible) */
+let starIntervalHandle = null;
+function scheduleShootingStars(){
+  // clear first
+  if(starIntervalHandle) { clearInterval(starIntervalHandle); starIntervalHandle = null; }
+  // randomize initial offset a bit
+  const base = 90000; // 90 seconds
+  const jitter = 20000;
+  starIntervalHandle = setInterval(()=>{
+    if(document.visibilityState === 'visible'){
+      spawnShootingStar();
+    }
+  }, base + Math.floor(Math.random()*jitter));
+  // spawn first one after a shorter delay to show effect quickly
+  setTimeout(()=>{ if(document.visibilityState==='visible') spawnShootingStar(); }, 12000 + Math.random()*7000);
+}
+
+/* pause shooting intervals when tab hidden */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible'){ scheduleShootingStars(); } else { if(starIntervalHandle) clearInterval(starIntervalHandle); starIntervalHandle = null; }
+});
+
+/* ----------------------------
+  Draggable player logic
+-----------------------------*/
+const playerBox = document.getElementById('playerBox');
+const playerHandle = document.getElementById('playerHandle');
+let dragging = false, dragOffsetX=0, dragOffsetY=0;
+
+function clampPlayerPos(x,y){
+  const pad = 6;
+  const w = playerBox.offsetWidth, h = playerBox.offsetHeight;
+  const maxX = window.innerWidth - w - pad;
+  const maxY = window.innerHeight - h - pad;
+  return {x: clamp(x, pad, maxX), y: clamp(y, pad, maxY)};
+}
+
+function onPointerDown(e){
+  e.preventDefault();
+  dragging = true;
+  playerBox.setPointerCapture && playerBox.setPointerCapture(e.pointerId);
+  const rect = playerBox.getBoundingClientRect();
+  dragOffsetX = e.clientX - rect.left;
+  dragOffsetY = e.clientY - rect.top;
+}
+function onPointerMove(e){
+  if(!dragging) return;
+  let x = e.clientX - dragOffsetX;
+  let y = e.clientY - dragOffsetY;
+  const pos = clampPlayerPos(x,y);
+  playerBox.style.left = pos.x + 'px';
+  playerBox.style.top = pos.y + 'px';
+}
+function onPointerUp(e){
+  dragging = false;
+  playerBox.releasePointerCapture && playerBox.releasePointerCapture(e.pointerId);
+}
+
+playerHandle.addEventListener('pointerdown', onPointerDown);
+window.addEventListener('pointermove', onPointerMove);
+window.addEventListener('pointerup', onPointerUp);
+// touch fallback if pointer events unsupported
+playerHandle.addEventListener('touchstart', (e)=> { onPointerDown(e.touches[0]); }, {passive:false});
+window.addEventListener('touchmove', (e)=> { onPointerMove(e.touches[0]); }, {passive:false});
+window.addEventListener('touchend', (e)=> { onPointerUp(e.changedTouches ? e.changedTouches[0] : e); }, {passive:false});
+
+/* reset player to top-left on load (per your request) */
+function resetPlayerPosition(){
+  playerBox.style.left = '18px';
+  playerBox.style.top = '18px';
+}
+
+/* ----------------------------
+  Init / startup
+----------------------------*/
+function initAll(){
+  resizeCanvas();
+  buildStars();
+  createWorms();
+  buildTitle();
+  scheduleShootingStars();
+  requestAnimationFrame(drawStars);
+  resetPlayerPosition();
+
+  // show unmute hint then fade
+  setTimeout(()=>{ unmuteHint.style.opacity = 1; }, 900);
+  document.addEventListener('click', ()=>{ unmuteHint.style.opacity = 0; }, {once:false, passive:true});
+
+  // attempt a best-effort autoplay focus when user interacts
+  document.addEventListener('click', ()=> {
+    try{
+      const iframe = document.getElementById('spotifyFrame');
+      iframe && iframe.contentWindow && iframe.contentWindow.focus && iframe.contentWindow.focus();
+    } catch(e){}
+  }, {once:true});
+}
+
+/* start when DOM ready */
+if(document.readyState === 'complete' || document.readyState === 'interactive') initAll();
+else document.addEventListener('DOMContentLoaded', initAll);
+
+/* ----------------------------
+  Utilities
+----------------------------*/
+function shuffleArray(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+function debounce(fn, t){ let h; return ()=>{ clearTimeout(h); h=setTimeout(fn,t); }; }
+
+/* ----------------------------
+  End
+----------------------------*/
+</script>
+</body>
+</html>
