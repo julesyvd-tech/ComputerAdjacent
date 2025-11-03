@@ -1,292 +1,144 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Compost Adjacent</title>
-<meta name="description" content="Compost Adjacent — cosmic compost transmissions" />
 <link rel="icon" href="data:image/svg+xml;utf8,
 %3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M8 36c4-10 12-12 20-10s14 8 20 12 8 6 12 4' stroke='%23ff4fb3' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<meta property="og:title" content="Compost Adjacent">
+<meta property="og:description" content="Cosmic compost transmissions">
+<meta property="og:image" content="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M8 36c4-10 12-12 20-10s14 8 20 12 8 6 12 4' stroke='%23ff4fb3' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
 <style>
-  :root{
-    --worm1:#ff4fb3; --worm2:#80ffb0; --worm3:#ffd24a;
-    --worm4:#ff8a3d; --worm5:#50f1ff; --worm6:#ff5b5b;
-    --bg:#030303;
-  }
-  html,body{height:100%;margin:0;background:var(--bg);font-family:Verdana,Arial,sans-serif;color:#dfeee0;overflow:hidden;-webkit-font-smoothing:antialiased;}
-  /* subtle dither overlay tile using inline svg */
-  body::before{
-    content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
-    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect width='100%25' height='100%25' fill='%23020202'/%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
-    background-repeat: repeat; mix-blend-mode: overlay; opacity:0.95;
-  }
-
-  /* layout */
-  .wrap{position:relative; z-index:3; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding-top:2vh;}
-  /* vertical title (slightly staggered organic) */
-  .title-vertical { display:flex; flex-direction:column; align-items:center; gap:2px; z-index:4; user-select:none; }
-  .title-vertical .letter {
-    display:block; font-size: clamp(28px,6.5vw,64px); font-weight:800; line-height:0.9; text-transform:uppercase;
-    transform-origin:50% 50%;
-    text-shadow: 0 6px 18px rgba(0,0,0,0.6);
-    filter: drop-shadow(0 0 6px rgba(0,0,0,0.6));
-  }
-  /* wave up/down */
-  @keyframes letterFloat {
-    0%{ transform: translateY(0); }
-    25%{ transform: translateY(-10%); }
-    50%{ transform: translateY(0); }
-    75%{ transform: translateY(6%); }
-    100%{ transform: translateY(0); }
-  }
-
-  /* starfield canvas (CRT stars) */
-  canvas#stars { position:fixed; inset:0; z-index:1; display:block; width:100%; height:100%; }
-
-  /* tiny-worm elements */
-  .worm-layer { position:fixed; inset:0; z-index:2; pointer-events:none; }
-  .tiny-worm { position:absolute; transform-origin:center center; will-change: transform, opacity; }
-  .tiny-worm svg { display:block; }
-  .tiny-worm .core { stroke-linecap:round; stroke-linejoin:round; }
-
-  /* link buttons (bigger worm svgs) */
-  .links-left, .links-right { position:fixed; bottom:22px; z-index:6; display:flex; gap:14px; align-items:center; }
-  .links-left { left:18px; }
-  .links-right { right:18px; }
-  .link-btn { width:72px; height:72px; display:grid; place-items:center; border-radius:12px; text-decoration:none; border:2px solid rgba(255,255,255,0.03); background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12)); box-shadow:0 8px 28px rgba(0,0,0,0.55); }
-  .link-btn svg { width:48px; height:28px; }
-
-  /* player bottom center */
-  .player-wrap{ position:fixed; left:50%; transform:translateX(-50%); bottom:12px; z-index:6; width:min(760px,94%); display:flex; justify-content:center; }
-  .player-frame{ width:100%; height:80px; border-radius:12px; overflow:hidden; border:2px solid rgba(255,255,255,0.04); box-shadow:0 10px 40px rgba(0,0,0,0.6); background:rgba(0,0,0,0.18); }
-
-  .unmute-hint { position:fixed; left:50%; transform:translateX(-50%); bottom:110px; z-index:7; font-family:monospace; font-size:12px; color:rgba(220,240,200,0.78); padding:6px 10px; border-radius:6px; background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.03); opacity:0; transition:opacity .3s; }
-
-  @media (max-width:520px){
-    .link-btn { width:56px; height:56px; }
-    .link-btn svg { width:40px; height:22px; }
-    .title-vertical .letter { font-size: clamp(20px,8vw,36px); }
-    .player-frame { height:66px; }
-  }
-
+  html,body{margin:0;height:100%;background:#000;font-family:Verdana,sans-serif;overflow:hidden;}
+  body.inverted{filter:invert(1) hue-rotate(180deg);}
+  canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
+  .title{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;z-index:5;}
+  .letter{font-size:clamp(28px,6vw,64px);font-weight:800;text-transform:uppercase;animation:wave 1.2s ease-in-out infinite;will-change:transform;color:var(--c);}
+  @keyframes wave{0%,100%{transform:translateY(0)}25%{transform:translateY(-6px)}75%{transform:translateY(4px)}}
+  #player{position:fixed;top:20px;left:20px;width:240px;height:80px;border-radius:10px;overflow:hidden;box-shadow:0 0 20px #ff4fb3;cursor:move;z-index:10;}
 </style>
 </head>
 <body>
-  <!-- CRT stars canvas -->
-  <canvas id="stars" aria-hidden="true"></canvas>
+<canvas id="bg"></canvas>
 
-  <!-- worm DOM layer (tiny svg worms) -->
-  <div class="worm-layer" id="wormLayer" aria-hidden="true"></div>
+<div class="title" id="title"></div>
 
-  <div class="wrap" role="main" aria-labelledby="siteTitle">
-    <!-- Vertical staggered title -->
-    <div class="title-vertical" id="siteTitle" aria-label="COMPOST ADJACENT" role="heading" aria-level="1">
-      <!-- letters inserted by JS -->
-    </div>
-  </div>
-
-  <!-- link buttons (worm svgs as buttons) -->
-  <div class="links-left">
-    <a class="link-btn" id="spotify-btn" href="https://open.spotify.com/artist/4JYHgAnjpihRXtvZ8Qssok" target="_blank" rel="noopener noreferrer" aria-label="Open Spotify">
-      <svg viewBox="0 0 200 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="worm-path" d="M5,20 Q25,10 45,20 T85,20 T125,20 T165,20 T195,20" fill="none" stroke="var(--worm2)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </a>
-  </div>
-
-  <div class="links-right">
-    <a class="link-btn" id="ig-btn" href="https://www.instagram.com/compostadjacent/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-      <svg viewBox="0 0 200 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="worm-path" d="M5,20 Q25,10 45,20 T85,20 T125,20 T165,20 T195,20" fill="none" stroke="var(--worm4)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </a>
-    <a class="link-btn" id="contact-btn" href="https://www.instagram.com/compostadjacent/" target="_blank" rel="noopener noreferrer" aria-label="Contact">
-      <svg viewBox="0 0 200 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="worm-path" d="M5,20 Q25,10 45,20 T85,20 T125,20 T165,20 T195,20" fill="none" stroke="var(--worm1)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </a>
-  </div>
-
-  <!-- spotify player bottom center -->
-  <div class="player-wrap" aria-hidden="false">
-    <div class="player-frame">
-      <iframe id="spotifyFrame" src="https://open.spotify.com/embed/artist/4JYHgAnjpihRXtvZ8Qssok?utm_source=generator&theme=0" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" title="Compost Adjacent Spotify player" loading="lazy"></iframe>
-    </div>
-  </div>
-
-  <div class="unmute-hint" id="unmuteHint">Click player to unmute / open in Spotify for full playback</div>
+<div id="player">
+  <iframe src="https://open.spotify.com/embed/artist/4JYHgAnjpihRXtvZ8Qssok?utm_source=generator&theme=0"
+          width="100%" height="100%" frameborder="0"
+          allow="autoplay; encrypted-media" loading="lazy"></iframe>
+</div>
 
 <script>
-/* ===== config & palette ===== */
-const palette = ['#ff4fb3','#80ffb0','#ffd24a','#ff8a3d','#50f1ff','#ff5b5b'];
+const palette=['#ff4fb3','#80ffb0','#ffd24a','#ff8a3d','#50f1ff','#ff5b5b'];
+/* vertical title */
+const title=document.getElementById('title');
+"COMPOST ADJACENT".split('').forEach((ch,i)=>{
+  const s=document.createElement('span');
+  s.textContent=ch;
+  s.className='letter';
+  s.style.setProperty('--c',palette[i%palette.length]);
+  s.style.animationDelay=(i*0.1)+'s';
+  s.style.marginLeft=(Math.random()*20-10)+'px';
+  title.appendChild(s);
+});
+/* invert every 100th visit */
+let count=+localStorage.getItem('visits')||0;count++;localStorage.setItem('visits',count);
+if(count%100===0)document.body.classList.add('inverted');
 
-/* ===== CRT stars on canvas (fast) ===== */
-const canvas = document.getElementById('stars');
-const ctx = canvas.getContext('2d', { alpha: true });
-let stars = [];
-function resizeCanvas(){
-  canvas.width = innerWidth;
-  canvas.height = innerHeight;
-  buildStars();
+/* draggable player */
+const p=document.getElementById('player');
+let ox,oy,dx,dy,drag=false;
+p.addEventListener('mousedown',e=>{drag=true;ox=e.clientX;oy=e.clientY;dx=p.offsetLeft;dy=p.offsetTop;});
+window.addEventListener('mouseup',()=>drag=false);
+window.addEventListener('mousemove',e=>{
+ if(!drag)return;
+ let nx=dx+e.clientX-ox, ny=dy+e.clientY-oy;
+ nx=Math.max(0,Math.min(window.innerWidth-p.offsetWidth,nx));
+ ny=Math.max(0,Math.min(window.innerHeight-p.offsetHeight,ny));
+ p.style.left=nx+'px';p.style.top=ny+'px';
+});
+
+/* starfield + worms + shooting stars */
+const c=document.getElementById('bg');const ctx=c.getContext('2d');
+function resize(){c.width=innerWidth;c.height=innerHeight;}
+window.addEventListener('resize',resize);resize();
+let worms=[],stars=[],shoots=[],boom=[],shootCount=0,tLast=0;
+function initField(){
+  worms=[];stars=[];
+  for(let i=0;i<80;i++)worms.push({x:Math.random()*c.width,y:Math.random()*c.height,c:palette[i%palette.length],p:Math.random()*6});
+  for(let i=0;i<400;i++)stars.push({x:Math.random()*c.width,y:Math.random()*c.height,c:palette[i%palette.length],f:Math.random()*Math.PI*2});
 }
-window.addEventListener('resize', debounce(()=>{ resizeCanvas(); }, 200));
-function buildStars(){
-  stars = [];
-  const area = innerWidth * innerHeight;
-  // density tuned to subtle→medium
-  const count = Math.floor(Math.min(900, area/3500));
-  for(let i=0;i<count;i++){
-    stars.push({
-      x: Math.random()*canvas.width,
-      y: Math.random()*canvas.height,
-      color: palette[Math.floor(Math.random()*palette.length)],
-      baseR: Math.random()*1.2 + 0.6,
-      flickerSpeed: 0.8 + Math.random()*1.8,
-      phase: Math.random()*Math.PI*2,
-      scan: (Math.random() < 0.06) // some stars have tiny scanline shimmer
-    });
+initField();
+/* shooting star spawner */
+function addShoot(){
+  const side=Math.floor(Math.random()*4);
+  let x,y,vx,vy;
+  const speed=2+Math.random()*3;
+  if(side===0){x=-50;y=Math.random()*c.height;vx=speed;vy=(Math.random()-0.5)*speed;}
+  else if(side===1){x=c.width+50;y=Math.random()*c.height;vx=-speed;vy=(Math.random()-0.5)*speed;}
+  else if(side===2){y=-50;x=Math.random()*c.width;vy=speed;vx=(Math.random()-0.5)*speed;}
+  else{y=c.height+50;x=Math.random()*c.width;vy=-speed;vx=(Math.random()-0.5)*speed;}
+  const color=palette[Math.floor(Math.random()*palette.length)];
+  shoots.push({x,y,vx,vy,color,life:0});
+  shootCount++;
+  if(shootCount%5===0)createExplosion();
+}
+function createExplosion(){
+  const cx=c.width/2+(Math.random()-0.5)*c.width*0.3;
+  const cy=c.height/2+(Math.random()-0.5)*c.height*0.3;
+  for(let i=0;i<40;i++){
+    const ang=Math.random()*Math.PI*2;
+    const sp=1+Math.random()*3;
+    boom.push({x:cx,y:cy,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,color:palette[i%palette.length],life:0});
   }
 }
-
-/* draw stars with flicker (CRT pixel vibe) */
-let last = performance.now();
-function drawStars(now){
-  const dt = now - last; last = now;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  // faint background wash
-  ctx.fillStyle = 'rgba(0,0,0,0.14)';
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  for(let s of stars){
-    const t = now/1000 * s.flickerSpeed + s.phase;
-    const flick = 0.6 + 0.4*Math.abs(Math.sin(t*1.2));
-    const r = Math.max(0.5, s.baseR * (0.8 + 0.6*Math.sin(t)));
-    ctx.fillStyle = s.color;
-    // pixelated dot: draw a small rect (CRT feel)
-    ctx.fillRect(Math.round(s.x), Math.round(s.y), Math.max(1, Math.round(r)), Math.max(1, Math.round(r)));
-    // optional scanline tiny horizontal smear
-    if(s.scan){
-      ctx.fillStyle = hexToRgba(s.color, 0.08*flick);
-      ctx.fillRect(Math.round(s.x-1), Math.round(s.y-0.5), Math.round(2 + r), 1);
+/* visibility pause */
+let active=true;
+document.addEventListener('visibilitychange',()=>{active=!document.hidden;});
+/* animation loop */
+function frame(t){
+  if(!active){requestAnimationFrame(frame);return;}
+  const dt=(t-tLast)/16; tLast=t;
+  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(0,0,c.width,c.height);
+  // stars
+  for(const s of stars){
+    const b=(Math.sin(t/600+s.f)*0.5+0.5)*255|0;
+    ctx.fillStyle=s.c;ctx.globalAlpha=0.6+0.4*Math.sin(t/800+s.f);
+    ctx.fillRect(s.x|0,s.y|0,1,1);
+  }
+  ctx.globalAlpha=1;
+  // worms
+  for(const w of worms){
+    w.p+=0.02;ctx.strokeStyle=w.c;ctx.lineWidth=1.4;
+    ctx.beginPath();
+    for(let i=0;i<10;i++){
+      const xx=w.x+i*2+Math.sin(w.p+i*0.4)*2;
+      const yy=w.y+Math.cos(w.p+i*0.6)*2;
+      if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
     }
+    ctx.stroke();
   }
-  requestAnimationFrame(drawStars);
-}
-
-/* ===== tiny worm DOM elements - fewer, optimized, non-colliding placement ===== */
-const wormLayer = document.getElementById('wormLayer');
-function createWorms(){
-  wormLayer.innerHTML = '';
-  const cols = Math.max(8, Math.floor(window.innerWidth / 140));
-  const rows = Math.max(6, Math.floor(window.innerHeight / 120));
-  const cells = [];
-  for(let y=0;y<rows;y++){
-    for(let x=0;x<cols;x++){
-      cells.push({x,y});
-    }
+  // shooting stars
+  for(let i=shoots.length-1;i>=0;i--){
+    const s=shoots[i];s.x+=s.vx*dt;s.y+=s.vy*dt;s.life+=dt;
+    ctx.strokeStyle=s.color;ctx.lineWidth=2;ctx.globalAlpha=Math.max(0,1-s.life/50);
+    ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x-s.vx*10,s.y-s.vy*10);ctx.stroke();ctx.globalAlpha=1;
+    if(s.x<-60||s.x>c.width+60||s.y<-60||s.y>c.height+60||s.life>60)shoots.splice(i,1);
   }
-  shuffleArray(cells);
-  const maxWorms = Math.min(90, Math.floor(cells.length * 0.55)); // fewer worms
-  for(let i=0;i<maxWorms;i++){
-    const cell = cells[i];
-    const cellW = window.innerWidth/cols;
-    const cellH = window.innerHeight/rows;
-    const jitterX = (Math.random()*0.7-0.35)*cellW;
-    const jitterY = (Math.random()*0.7-0.35)*cellH;
-    const x = Math.round(cell.x*cellW + cellW/2 + jitterX);
-    const y = Math.round(cell.y*cellH + cellH/2 + jitterY);
-    const size = 6 + Math.random()*12;
-    const tpl = Math.floor(Math.random()*6);
-    const rot = Math.random()*360;
-    const el = document.createElement('div');
-    el.className='tiny-worm';
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-    el.style.width = size + 'px';
-    el.style.height = (size*0.45) + 'px';
-    el.style.transform = `translate(-50%,-50%) rotate(${rot}deg)`;
-    // create inline simple SVG (no heavy filters) and use drop-shadow CSS for glow
-    const color = palette[tpl];
-    const strokeW = Math.max(1.2, (size/12) * 2.6);
-    el.innerHTML = `<svg viewBox="0 0 200 40" width="${size}" height="${Math.round(size*0.45)}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M5,20 Q25,12 45,20 T85,20 T125,20 T165,20 T195,20" stroke="${color}" stroke-width="${strokeW}" fill="none" stroke-linecap="round" stroke-linejoin="round" class="core"/>
-    </svg>`;
-    // CSS drop-shadow glow via style
-    el.querySelector('.core').style.filter = `drop-shadow(0 0 ${2 + size*0.5}px ${color})`;
-    // animate drift+wiggle via WAAPI for smoothness (GPU)
-    const driftX = (Math.random()*140 - 70);
-    const driftY = (Math.random()*80 - 40);
-    const dur = 22000 + Math.random()*38000;
-    const delay = Math.random()*6000;
-    el.animate([
-      { transform: `translate(-50%,-50%) rotate(${rot}deg) translate(0px,0px)` },
-      { transform: `translate(-50%,-50%) rotate(${rot+6}deg) translate(${driftX/2}px,${driftY/2}px)` },
-      { transform: `translate(-50%,-50%) rotate(${rot}deg) translate(${driftX}px,${driftY}px)` }
-    ], { duration: dur, iterations: Infinity, direction:'alternate', easing:'ease-in-out', delay });
-    // small stroke opacity flicker using setTimeout loop (lightweight)
-    const p = el.querySelector('.core');
-    let phase = Math.random()*1000;
-    (function flickLoop(){
-      p.style.opacity = (0.6 + Math.random()*0.45).toFixed(2);
-      setTimeout(flickLoop, 1200 + Math.random()*2000);
-    })();
-    wormLayer.appendChild(el);
+  // explosions
+  for(let i=boom.length-1;i>=0;i--){
+    const b=boom[i];b.x+=b.vx*dt;b.y+=b.vy*dt;b.life+=dt;
+    ctx.fillStyle=b.color;ctx.globalAlpha=Math.max(0,1-b.life/60);
+    ctx.beginPath();ctx.arc(b.x,b.y,2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    if(b.life>60)boom.splice(i,1);
   }
+  requestAnimationFrame(frame);
 }
-
-/* ===== vertical title building & per-letter animation ===== */
-function buildTitle(){
-  const target = document.getElementById('siteTitle');
-  const text = "COMPOST ADJACENT";
-  target.innerHTML = '';
-  const letters = text.split('');
-  for(let i=0;i<letters.length;i++){
-    const ch = letters[i];
-    const span = document.createElement('span');
-    span.className = 'letter';
-    span.textContent = ch;
-    // assign color cyclically (skip spaces)
-    if(ch.trim()){
-      const idx = i % palette.length;
-      span.style.color = palette[idx];
-      span.style.textShadow = `0 0 12px ${palette[idx]}, 0 14px 28px rgba(0,0,0,0.6)`;
-      // slight horizontal offset for organic stagger
-      span.style.marginLeft = (Math.random()*18 - 9) + 'px';
-      // staggered wave timing
-      const delay = (i * 0.08) + (Math.random()*0.06);
-      span.style.animation = `letterFloat 1.15s cubic-bezier(.2,.8,.2,1) ${delay}s infinite`;
-    } else {
-      span.style.height = '8px';
-    }
-    target.appendChild(span);
-  }
-}
-
-/* ===== utilities ===== */
-function shuffleArray(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
-function hexToRgba(hex, a){ const c=hex.replace('#',''); const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16); return `rgba(${r},${g},${b},${a})`; }
-function debounce(fn, t){ let h; return ()=>{ clearTimeout(h); h=setTimeout(fn,t); }; }
-
-/* ===== startup & animation loops ===== */
-resizeCanvas();
-buildTitle();
-createWorms();
-
-setTimeout(()=>{ // slight defer so main paint occurs quicker
-  requestAnimationFrame(drawStars);
-}, 120);
-
-/* rebuild on resize with debounce */
-window.addEventListener('resize', debounce(()=>{ buildTitle(); createWorms(); resizeCanvas(); }, 260));
-
-/* Spotify player hint behavior */
-const unmuteHint = document.getElementById('unmuteHint');
-setTimeout(()=>{ unmuteHint.style.opacity = 1; }, 900);
-document.addEventListener('click', ()=>{ unmuteHint.style.opacity = 0; }, {once:false, passive:true});
-
-/* attempt to autoplay (muted) - browsers are strict, this is a best-effort */
-const iframe = document.getElementById('spotifyFrame');
-function tryAutoplay(){
-  try{
-    // focusing iframe to hint user interaction possibility
-    iframe.contentWindow && iframe.contentWindow.postMessage('{"method":"play"}', '*');
-  }catch(e){}
-}
-document.addEventListener('click', tryAutoplay, {once:true, passive:true});
-
+requestAnimationFrame(frame);
+/* schedule shooting stars */
+setInterval(()=>{if(active)addShoot();},90000);
 </script>
 </body>
 </html>
